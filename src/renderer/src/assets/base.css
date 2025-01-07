@@ -16,8 +16,9 @@ ul {
 
 .app {
   min-height: 100vh;
+  min-width: 100vw;
   color: var(--color-text);
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.75);
   /* backdrop-filter: blur(100rem);
   -webkit-backdrop-filter: blur(100rem); */
   line-height: 1.6;
@@ -39,6 +40,8 @@ ul {
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
   border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 body {

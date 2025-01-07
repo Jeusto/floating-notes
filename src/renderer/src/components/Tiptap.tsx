@@ -1,4 +1,4 @@
-import { useEditor, EditorContent, FloatingMenu, BubbleMenu } from '@tiptap/react'
+import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 
 const extensions = [StarterKit]
@@ -16,16 +16,7 @@ const Tiptap = () => {
     return null
   }
 
-  return (
-    <>
-      <div className="app-drag-region">
-        <h1>Floating notes</h1>
-      </div>
-      <EditorContent editor={editor} />
-      {/* <FloatingMenu editor={editor}></FloatingMenu> */}
-      {/* <BubbleMenu editor={editor}>This is the bubble menu</BubbleMenu> */}
-    </>
-  )
+  return <EditorContent editor={editor} />
 }
 
 export default Tiptap

@@ -95,6 +95,13 @@ app.whenReady().then(() => {
 
   ipcMain.on('ping', () => console.log('pong'))
 
+  ipcMain.on('hide-window', () => {
+    console.log('hiding window')
+    if (mainWindow) {
+      mainWindow.hide()
+    }
+  })
+
   createWindow()
 
   // In the toggle handler, restore position using percentages
