@@ -24,12 +24,17 @@ function createWindow(): void {
     ...savedBounds,
     show: false,
     autoHideMenuBar: true,
+    transparent: true,
+    // vibrancy: 'fullscreen-ui', // on MacOS
+    // backgroundMaterial: 'acrylic', // on Windows 11
     alwaysOnTop: true,
+    frame: false,
     focusable: true,
     skipTaskbar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
+      spellcheck: false,
       sandbox: false
     }
   })
@@ -78,6 +83,8 @@ function createWindow(): void {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 }
+
+// app.commandLine.appendSwitch('--enable-transparent-visuals')
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.electron')
