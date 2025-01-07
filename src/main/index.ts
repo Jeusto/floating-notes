@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, globalShortcut } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, globalShortcut, screen } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -8,12 +8,13 @@ let mainWindow: BrowserWindow | null = null
 function createWindow(): void {
   // Create the browser window.
   mainWindow = new BrowserWindow({
+    // Todo remember dimensions on reopening
     width: 900,
     height: 670,
-    show: true,
+    show: false,
     autoHideMenuBar: true,
     alwaysOnTop: true,
-    // focusable: false,
+    focusable: true,
     skipTaskbar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
@@ -69,6 +70,18 @@ app.whenReady().then(() => {
       if (mainWindow.isVisible()) {
         mainWindow.hide()
       } else {
+        // Get the display where the cursor is located
+        const cursorPoint = screen.getCursorScreenPoint()
+        const display = screen.getDisplayNearestPoint(cursorPoint)
+
+        // Center the window on the display where the cursor is located
+        mainWindow.setBounds({
+          x: display.bounds.x + (display.bounds.width - 900) / 2,
+          y: display.bounds.y + (display.bounds.height - 670) / 2,
+          width: mainWindow.getBounds().width,
+          height: mainWindow.getBounds().height
+        })
+
         mainWindow.show()
       }
     }
