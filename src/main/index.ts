@@ -1,16 +1,27 @@
 import { app, shell, BrowserWindow, ipcMain, globalShortcut, screen } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import Store from 'electron-store'
 import icon from '../../resources/icon.png?asset'
+
+interface WindowBounds {
+  width: number
+  height: number
+  xPercent?: number
+  yPercent?: number
+}
+
+const store = new Store<WindowBounds>()
 
 let mainWindow: BrowserWindow | null = null
 
 function createWindow(): void {
+  const defaultBounds: WindowBounds = { width: 900, height: 670 }
+  const savedBounds = store.get('windowBounds', defaultBounds)
+
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    // Todo remember dimensions on reopening
-    width: 900,
-    height: 670,
+    ...savedBounds,
     show: false,
     autoHideMenuBar: true,
     alwaysOnTop: true,
@@ -31,6 +42,29 @@ function createWindow(): void {
     mainWindow = null
   })
 
+  mainWindow.on('resize', () => {
+    if (mainWindow) {
+      store.set('windowBounds', mainWindow.getBounds())
+    }
+  })
+
+  // In the move event handler, convert absolute position to percentages
+  mainWindow.on('move', () => {
+    if (mainWindow) {
+      const bounds = mainWindow.getBounds()
+      const display = screen.getDisplayMatching(bounds)
+      const xPercent = (bounds.x - display.bounds.x) / display.bounds.width
+      const yPercent = (bounds.y - display.bounds.y) / display.bounds.height
+
+      store.set('windowBounds', {
+        width: bounds.width,
+        height: bounds.height,
+        xPercent,
+        yPercent
+      })
+    }
+  })
+
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
@@ -45,41 +79,51 @@ function createWindow(): void {
   }
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-  // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
-  // Default open or close DevTools by F12 in development
-  // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
   createWindow()
 
-  // Register a global shortcut to toggle the visibility of the main window
+  // In the toggle handler, restore position using percentages
   globalShortcut.register('Alt+N', () => {
     if (mainWindow) {
       if (mainWindow.isVisible()) {
         mainWindow.hide()
       } else {
-        // Get the display where the cursor is located
         const cursorPoint = screen.getCursorScreenPoint()
         const display = screen.getDisplayNearestPoint(cursorPoint)
+        const savedBounds = store.get('windowBounds', {
+          width: 900,
+          height: 670,
+          xPercent: 0,
+          yPercent: 0
+        }) as WindowBounds
 
-        // Center the window on the display where the cursor is located
+        // Calculate absolute position from percentages
+        const newX = display.bounds.x + (savedBounds.xPercent ?? 0) * display.bounds.width
+        const newY = display.bounds.y + (savedBounds.yPercent ?? 0) * display.bounds.height
+
+        // Ensure window stays within screen bounds
+        const boundedX = Math.min(
+          Math.max(newX, display.bounds.x),
+          display.bounds.x + display.bounds.width - savedBounds.width
+        )
+        const boundedY = Math.min(
+          Math.max(newY, display.bounds.y),
+          display.bounds.y + display.bounds.height - savedBounds.height
+        )
+
         mainWindow.setBounds({
-          x: display.bounds.x + (display.bounds.width - 900) / 2,
-          y: display.bounds.y + (display.bounds.height - 670) / 2,
-          width: mainWindow.getBounds().width,
-          height: mainWindow.getBounds().height
+          x: Math.round(boundedX),
+          y: Math.round(boundedY),
+          width: savedBounds.width,
+          height: savedBounds.height
         })
 
         mainWindow.show()
@@ -88,25 +132,16 @@ app.whenReady().then(() => {
   })
 
   app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
 })
 
-// Unregister all shortcuts when the app quits
 app.on('will-quit', () => {
   globalShortcut.unregisterAll()
 })
-
-// In this file you can include the rest of your app"s specific main process
-// code. You can also put them in separate files and require them here.
