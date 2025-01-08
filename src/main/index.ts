@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, globalShortcut, screen } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, globalShortcut, screen, Tray, Menu } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import Store from 'electron-store'
@@ -14,6 +14,8 @@ interface WindowBounds {
 const store = new Store<WindowBounds>()
 
 let mainWindow: BrowserWindow | null = null
+
+let tray: Tray | null = null
 
 function createWindow(): void {
   const defaultBounds: WindowBounds = { width: 900, height: 670 }
@@ -84,6 +86,41 @@ function createWindow(): void {
   }
 }
 
+function createTray(): void {
+  tray = new Tray(icon)
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Show/Hide Window',
+      click: (): void => {
+        if (mainWindow) {
+          mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show()
+        }
+      }
+    },
+    {
+      label: 'Settings',
+      click: (): void => {}
+    },
+    { type: 'separator' },
+    {
+      label: 'Quit',
+      click: (): void => {
+        app.quit()
+      }
+    }
+  ])
+
+  tray.setToolTip('Floating Notes')
+  tray.setContextMenu(contextMenu)
+
+  // Optional: Toggle window on tray click
+  tray.on('click', () => {
+    if (mainWindow) {
+      mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show()
+    }
+  })
+}
+
 // app.commandLine.appendSwitch('--enable-transparent-visuals')
 
 app.whenReady().then(() => {
@@ -103,6 +140,7 @@ app.whenReady().then(() => {
   })
 
   createWindow()
+  createTray()
 
   // In the toggle handler, restore position using percentages
   globalShortcut.register('Alt+N', () => {
@@ -158,4 +196,9 @@ app.on('window-all-closed', () => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll()
+
+  if (tray) {
+    tray.destroy()
+    tray = null
+  }
 })
